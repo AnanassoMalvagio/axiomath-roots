@@ -355,6 +355,107 @@
             nav a { padding: 10px 12px; font-size: 1rem; }
             .featured { padding: 1.2rem; }
         }
+
+        /* ─── ADMIN PANEL ───────────────────────────────────────────── */
+        #admin-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(4,0,0,.97);
+            z-index: 9999;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+        #admin-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+        .admin-box {
+            width: 100%;
+            max-width: 640px;
+            border: 1px solid var(--red-dim);
+            padding: 2.5rem;
+            background: var(--bg-card);
+            position: relative;
+            margin: auto;
+        }
+        .admin-head {
+            font-family: 'Teko', sans-serif;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--red);
+            margin-bottom: 0.3rem;
+        }
+        .admin-sub {
+            font-size: 0.65rem;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .admin-close {
+            position: absolute;
+            top: 1.2rem; right: 1.5rem;
+            background: none;
+            border: none;
+            color: #444;
+            font-size: 1.3rem;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+        }
+        .admin-close:hover { color: var(--text); }
+
+        .admin-field { margin-bottom: 1.2rem; }
+        .admin-field label {
+            display: block;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .admin-field input,
+        .admin-field select,
+        .admin-field textarea {
+            width: 100%;
+            background: #080000;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            padding: 9px 12px;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+        .admin-field input:focus,
+        .admin-field select:focus,
+        .admin-field textarea:focus { border-color: var(--red-dim); }
+        .admin-field textarea { resize: vertical; min-height: 76px; }
+        .admin-field select option { background: #0a0000; }
+        .admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        #admin-status {
+            font-size: 0.78rem;
+            margin-top: 1rem;
+            min-height: 1.4em;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+        #admin-status.ok  { color: #4caf50; }
+        #admin-status.err { color: var(--red-hot); }
+
+        #lock-screen { text-align: center; padding: 1rem 0; }
+        #lock-screen > p { font-size: 0.72rem; color: var(--muted); margin-bottom: 1.5rem; letter-spacing: 2px; text-transform: uppercase; }
+        #lock-screen .admin-field { max-width: 260px; margin: 0 auto 1.2rem; }
+        #lock-err { color: var(--red-hot); font-size: 0.72rem; margin-top: 0.8rem; min-height: 1.2em; letter-spacing: 1px; }
+
+        #admin-pub-btn { width: 100%; font-size: 1.3rem; padding: 10px; margin-top: 0.3rem; }
+        #admin-pub-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+        @media (max-width: 500px) {
+            .admin-grid-2 { grid-template-columns: 1fr; }
+            .admin-box { padding: 1.5rem 1.2rem; }
+        }
     </style>
 </head>
 <body>
@@ -395,7 +496,7 @@
                 <div class="stat-label">Razionalità residua</div>
             </div>
             <div class="stat-item">
-                <div class="stat-num">666</div>
+                <div class="stat-num">2π</div>
                 <div class="stat-label">BPM immaginati</div>
             </div>
         </div>
@@ -487,6 +588,242 @@
         <p>Copyright © 2026 — Generato nel caos. Tutti i diritti riservati (forse).</p>
         <p style="margin-top:6px;"><span>AXIOMATH ROOTS</span> &nbsp;|&nbsp; Zero divisioni per zero &nbsp;|&nbsp; Built with rage &amp; caffeine</p>
     </footer>
+
+    <!-- ═══ ADMIN PANEL ══════════════════════════════════════════════════════ -->
+    <div id="admin-overlay">
+        <div class="admin-box">
+            <button class="admin-close" onclick="adminClose()" title="Chiudi">✕</button>
+
+            <!-- SCHERMATA PASSWORD -->
+            <div id="lock-screen">
+                <p class="admin-head" style="text-align:center">// ADMIN //</p>
+                <p>Accesso riservato — inserisci credenziali</p>
+                <div class="admin-field">
+                    <label>Password</label>
+                    <input type="password" id="admin-pwd" placeholder="••••••••"
+                           onkeydown="if(event.key==='Enter')adminUnlock()">
+                </div>
+                <div class="admin-field">
+                    <label>GitHub Token</label>
+                    <input type="password" id="admin-token"
+                           placeholder="incolla il tuo token GitHub"
+                           onkeydown="if(event.key==='Enter')adminUnlock()">
+                </div>
+                <button class="btn" onclick="adminUnlock()">Accedi →</button>
+                <div id="lock-err"></div>
+            </div>
+
+            <!-- FORM PUBBLICAZIONE (nascosto finché non autenticato) -->
+            <div id="admin-form" style="display:none">
+                <p class="admin-head">// Nuovo Post</p>
+                <p class="admin-sub">Il post verrà aggiunto in cima all'archivio su GitHub</p>
+
+                <div class="admin-field">
+                    <label>Titolo *</label>
+                    <input type="text" id="af-titolo" placeholder="Il grande titolo del post">
+                </div>
+
+                <div class="admin-grid-2">
+                    <div class="admin-field">
+                        <label>Categoria *</label>
+                        <select id="af-cat">
+                            <option value="Musica">Musica</option>
+                            <option value="Matematica">Matematica</option>
+                            <option value="Deliri">Deliri</option>
+                            <option value="ROE">ROE</option>
+                        </select>
+                    </div>
+                    <div class="admin-field">
+                        <label>Data *</label>
+                        <input type="date" id="af-data">
+                    </div>
+                </div>
+
+                <div class="admin-field">
+                    <label>Blockquote (opzionale)</label>
+                    <textarea id="af-quote" placeholder='"Una frase ad effetto..."'></textarea>
+                </div>
+
+                <div class="admin-field">
+                    <label>Excerpt *</label>
+                    <textarea id="af-excerpt" style="min-height:100px"
+                              placeholder="Testo di anteprima del post..."></textarea>
+                </div>
+
+                <button class="btn" id="admin-pub-btn" onclick="adminPubblica()">
+                    Pubblica ↑
+                </button>
+                <div id="admin-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ─── Config ──────────────────────────────────────────────────────────────
+    const ADMIN_PWD  = 'roots2026';
+    const GH_API_URL = 'https://api.github.com/repos/ananassomalvagio/axiomath-roots/contents/index.html';
+
+    let _auth  = false;
+    let _token = '';   // impostato al login, non persiste nel codice
+
+    // ─── Apertura / chiusura ─────────────────────────────────────────────────
+    function adminOpen() {
+        document.getElementById('admin-overlay').classList.add('open');
+        document.getElementById('af-data').value = new Date().toISOString().slice(0, 10);
+        if (!_auth) setTimeout(() => document.getElementById('admin-pwd').focus(), 80);
+    }
+
+    function adminClose() {
+        document.getElementById('admin-overlay').classList.remove('open');
+        // Rimuovi #admin dall'URL senza reload
+        history.replaceState(null, '', location.pathname + location.search);
+    }
+
+    // ─── Autenticazione ──────────────────────────────────────────────────────
+    function adminUnlock() {
+        const pwd   = document.getElementById('admin-pwd').value;
+        const token = document.getElementById('admin-token').value.trim();
+
+        if (pwd !== ADMIN_PWD) {
+            document.getElementById('lock-err').textContent = '// password errata //';
+            document.getElementById('admin-pwd').value = '';
+            document.getElementById('admin-pwd').focus();
+            return;
+        }
+        if (!token) {
+            document.getElementById('lock-err').textContent = '// inserisci il GitHub token //';
+            document.getElementById('admin-token').focus();
+            return;
+        }
+
+        _auth  = true;
+        _token = token;
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('admin-form').style.display  = 'block';
+        document.getElementById('lock-err').textContent      = '';
+        // Svuota i campi di accesso — il token non rimane nel DOM
+        document.getElementById('admin-pwd').value   = '';
+        document.getElementById('admin-token').value = '';
+    }
+
+    // ─── Utility ─────────────────────────────────────────────────────────────
+    function isoToItalian(iso) {
+        const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+        const d    = new Date(iso + 'T12:00:00');
+        return `${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function buildPostHtml(titolo, categoria, dataStr, quote, excerpt) {
+        const tagCls    = ['Musica','ROE'].includes(categoria) ? 'tag' : 'tag gray';
+        const quoteHtml = quote.trim()
+            ? `\n                    <blockquote class="math-quote">\n                        &ldquo;${quote.trim()}&rdquo;\n                    </blockquote>`
+            : '';
+        return `
+                <article class="post-item">
+                    <h3 class="post-title">${titolo}</h3>
+                    <div class="post-meta">
+                        <span class="post-date">${dataStr}</span>
+                        <span class="${tagCls}">${categoria}</span>
+                        <span class="readtime">~ ? min</span>
+                    </div>${quoteHtml}
+                    <p class="post-excerpt">${excerpt}</p>
+                    <a href="#" class="btn" style="font-size:1rem; padding:5px 14px;">Leggi →</a>
+                </article>`;
+    }
+
+    // ─── Pubblicazione su GitHub ──────────────────────────────────────────────
+    async function adminPubblica() {
+        if (!_auth) return;
+
+        const titolo   = document.getElementById('af-titolo').value.trim();
+        const categoria= document.getElementById('af-cat').value;
+        const isoData  = document.getElementById('af-data').value;
+        const quote    = document.getElementById('af-quote').value;
+        const excerpt  = document.getElementById('af-excerpt').value.trim();
+
+        if (!titolo || !isoData || !excerpt) {
+            setStatus('Compila almeno Titolo, Data ed Excerpt.', 'err');
+            return;
+        }
+
+        const btn = document.getElementById('admin-pub-btn');
+        btn.disabled    = true;
+        btn.textContent = 'Pubblicazione...';
+        setStatus('Connessione a GitHub...', '');
+
+        try {
+            // 1. Fetch file corrente
+            const res = await fetch(GH_API_URL, {
+                headers: { 'Authorization': `token ${_token}` }
+            });
+            if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
+            const meta  = await res.json();
+            const sha   = meta.sha;
+
+            // Decodifica UTF-8
+            const bytes   = Uint8Array.from(atob(meta.content.replace(/\n/g, '')), c => c.charCodeAt(0));
+            const current = new TextDecoder('utf-8').decode(bytes);
+
+            // 2. Costruisci HTML del nuovo post
+            const dataStr = isoToItalian(isoData);
+            const newPost = buildPostHtml(titolo, categoria, dataStr, quote, excerpt);
+
+            // 3. Inserisci in cima alla post-list
+            const marker = '<div class="post-list">';
+            if (!current.includes(marker)) throw new Error('Marker ".post-list" non trovato nel file.');
+            const updated = current.replace(marker, marker + '\n' + newPost + '\n');
+
+            // 4. Codifica UTF-8 → base64
+            const enc     = new TextEncoder().encode(updated);
+            let   binary  = '';
+            enc.forEach(b => binary += String.fromCharCode(b));
+            const encoded = btoa(binary);
+
+            // 5. PUT su GitHub
+            const put = await fetch(GH_API_URL, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${_token}`,
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `[blog] Pubblica: ${titolo}`,
+                    content: encoded,
+                    sha    : sha
+                })
+            });
+            if (!put.ok) {
+                const e = await put.json().catch(() => ({}));
+                throw new Error(e.message || `PUT ${put.status}`);
+            }
+
+            setStatus('✓ Post pubblicato con successo!', 'ok');
+            document.getElementById('af-titolo').value  = '';
+            document.getElementById('af-quote').value   = '';
+            document.getElementById('af-excerpt').value = '';
+            document.getElementById('af-data').value    = new Date().toISOString().slice(0, 10);
+
+        } catch (e) {
+            setStatus('✗ Errore: ' + e.message, 'err');
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = 'Pubblica ↑';
+        }
+    }
+
+    function setStatus(msg, type) {
+        const el     = document.getElementById('admin-status');
+        el.textContent = msg;
+        el.className   = type;
+    }
+
+    // ─── Attivazione via hash ─────────────────────────────────────────────────
+    if (location.hash === '#admin') adminOpen();
+    window.addEventListener('hashchange', () => {
+        if (location.hash === '#admin') adminOpen();
+        else adminClose();
+    });
+    </script>
 
 </body>
 </html>
