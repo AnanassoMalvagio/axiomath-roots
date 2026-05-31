@@ -9,17 +9,17 @@
     <style>
         /* ─── VARIABILI ─────────────────────────────────────────────── */
         :root {
-            --bg:        #080808;
-            --bg-card:   #0d0101;
-            --bg-nav:    #0a0000;
-            --text:      #d8d4cc;
-            --muted:     #666;
-            --dim:       #333;
-            --red:       #b22222;
-            --red-hot:   #d93333;
-            --red-dim:   #5c0f0f;
-            --border:    #1e1e1e;
-            --border-red:#2a0808;
+            --bg:        #0a0a0f;
+            --bg-card:   #0f0f1a;
+            --bg-nav:    #08080f;
+            --text:      #e8e4f0;
+            --muted:     #666680;
+            --dim:       #3a3a55;
+            --red:       #9b59b6;
+            --red-hot:   #c039d4;
+            --red-dim:   #3d1a5c;
+            --border:    #1a1a2e;
+            --border-red:#2a1040;
         }
 
         /* ─── RESET & BASE ──────────────────────────────────────────── */
@@ -48,10 +48,10 @@
                     0deg,
                     transparent,
                     transparent 39px,
-                    #1a00001a 39px,
-                    #1a00001a 40px
+                    #1a0a2a1a 39px,
+                    #1a0a2a1a 40px
                 ),
-                linear-gradient(180deg, #140202 0%, var(--bg) 100%);
+                linear-gradient(180deg, #100818 0%, var(--bg) 100%);
             position: relative;
             overflow: hidden;
         }
@@ -61,7 +61,7 @@
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             font-size: 5rem;
-            color: #b2222208;
+            color: #9b59b608;
             font-family: 'Teko', sans-serif;
             word-break: break-all;
             line-height: 1;
@@ -122,7 +122,7 @@
 
         nav a:hover, nav a.active {
             color: var(--red);
-            background: #110000;
+            background: #0e0820;
         }
 
         nav a.active {
@@ -236,18 +236,18 @@
 
         .tag.gray {
             border-color: var(--dim);
-            color: #555;
+            color: #555570;
         }
 
         .readtime {
             font-size: 0.72rem;
-            color: #3a3a3a;
+            color: #3a3a55;
         }
 
         /* ─── EXCERPT & BLOCKQUOTE ──────────────────────────────────── */
         .post-excerpt {
             font-size: 0.92rem;
-            color: #999;
+            color: #9090a8;
             margin-bottom: 1.2rem;
         }
 
@@ -255,10 +255,10 @@
             border-left: 2px solid var(--red-dim);
             padding: 8px 14px;
             margin: 1rem 0;
-            color: #777;
+            color: #7a7a9a;
             font-style: italic;
             font-size: 0.88rem;
-            background: #0a0000;
+            background: #090914;
         }
 
         .math-divider {
@@ -328,7 +328,7 @@
         footer {
             text-align: center;
             padding: 2rem;
-            color: #2e2e2e;
+            color: #2e2e45;
             font-size: 0.72rem;
             border-top: 1px solid var(--border);
             letter-spacing: 1px;
@@ -397,7 +397,7 @@
             top: 1.2rem; right: 1.5rem;
             background: none;
             border: none;
-            color: #444;
+            color: #44445a;
             font-size: 1.3rem;
             cursor: pointer;
             font-family: 'Space Mono', monospace;
@@ -417,7 +417,7 @@
         .admin-field select,
         .admin-field textarea {
             width: 100%;
-            background: #080000;
+            background: #07070f;
             border: 1px solid var(--border);
             color: var(--text);
             font-family: 'Space Mono', monospace;
@@ -431,7 +431,7 @@
         .admin-field select:focus,
         .admin-field textarea:focus { border-color: var(--red-dim); }
         .admin-field textarea { resize: vertical; min-height: 76px; }
-        .admin-field select option { background: #0a0000; }
+        .admin-field select option { background: #090914; }
         .admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
         #admin-status {
@@ -572,7 +572,7 @@
                         <span class="tag gray">Categoria</span>
                         <span class="readtime">~ N min</span>
                     </div>
-                    <p class="post-excerpt" style="color:#3a3a3a; font-style:italic;">
+                    <p class="post-excerpt" style="color:#3a3a55; font-style:italic;">
                         Copia questo blocco &lt;article class="post-item"&gt; e incollalo sopra.
                         Modifica titolo, data, tag, blockquote ed excerpt. Il gioco è fatto.
                     </p>
