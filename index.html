@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AxioMath Roots — Disquisizioni non richieste</title>
+    <link rel="icon" type="image/png" href="logo-roe.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
@@ -490,9 +491,63 @@
         #admin-pub-btn { width: 100%; font-size: 1.3rem; padding: 10px; margin-top: 0.3rem; }
         #admin-pub-btn:disabled { opacity: .45; cursor: not-allowed; }
 
+        /* Edit banner */
+        #edit-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.8rem;
+            background: #0c1a14;
+            border: 1px solid var(--teal);
+            border-left: 3px solid var(--teal);
+            padding: 8px 14px;
+            margin-bottom: 1.2rem;
+            font-size: 0.72rem;
+            color: var(--teal);
+            letter-spacing: 1px;
+        }
+        #edit-banner.visible { display: flex; }
+        #edit-banner button {
+            background: none; border: none;
+            color: var(--muted); font-family: 'Space Mono', monospace;
+            font-size: 0.7rem; cursor: pointer; text-decoration: underline;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        #edit-banner button:hover { color: var(--text); }
+
+        /* Lista post admin */
+        .apl-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+        .apl-section-head {
+            font-family: 'Teko', sans-serif;
+            font-size: 1.1rem; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted); margin-bottom: 1rem;
+        }
+        .apl-row {
+            display: flex; align-items: center; gap: 0.8rem;
+            padding: 0.65rem 0; border-bottom: 1px solid var(--border);
+        }
+        .apl-row:last-child { border-bottom: none; }
+        .apl-info { flex: 1; min-width: 0; }
+        .apl-title {
+            display: block; font-family: 'Teko', sans-serif;
+            font-size: 1rem; color: var(--text); text-transform: uppercase;
+            letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .apl-meta { font-size: 0.62rem; color: var(--muted); }
+        .apl-btns { display: flex; gap: 5px; flex-shrink: 0; }
+        .apl-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--muted); font-family: 'Space Mono', monospace;
+            font-size: 0.68rem; padding: 3px 9px;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .apl-btn.edit:hover { border-color: var(--red); color: var(--red); }
+        .apl-btn.del:hover  { border-color: #a04040; color: #c06060; }
+
         @media (max-width: 500px) {
             .admin-grid-2 { grid-template-columns: 1fr; }
             .admin-box { padding: 1.5rem 1.2rem; }
+            .apl-row { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -653,8 +708,14 @@
 
             <!-- FORM PUBBLICAZIONE (nascosto finché non autenticato) -->
             <div id="admin-form" style="display:none">
-                <p class="admin-head">// Nuovo Post</p>
-                <p class="admin-sub">Il post verrà aggiunto in cima all'archivio su GitHub</p>
+                <p class="admin-head" id="admin-form-head">// Nuovo Post</p>
+                <p class="admin-sub" id="admin-form-sub">Il post verrà aggiunto in cima all'archivio su GitHub</p>
+
+                <!-- Banner modalità modifica -->
+                <div id="edit-banner">
+                    <span>✏️ Modalità modifica — stai aggiornando un post esistente</span>
+                    <button onclick="cancelEdit()">✕ Annulla</button>
+                </div>
 
                 <div class="admin-field">
                     <label>Titolo *</label>
@@ -692,6 +753,14 @@
                     Pubblica ↑
                 </button>
                 <div id="admin-status"></div>
+
+                <!-- Lista post esistenti -->
+                <div class="apl-section">
+                    <p class="apl-section-head">// Post esistenti</p>
+                    <div id="admin-post-list">
+                        <p style="font-size:.72rem;color:var(--muted);">Caricamento...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -701,19 +770,20 @@
     const ADMIN_PWD  = 'roots2026';
     const GH_API_URL = 'https://api.github.com/repos/ananassomalvagio/axiomath-roots/contents/index.html';
 
-    let _auth  = false;
-    let _token = '';   // impostato al login, non persiste nel codice
+    let _auth         = false;
+    let _token        = '';
+    let _editingIndex = null;   // null = nuovo post; numero = indice articolo da modificare
 
     // ─── Apertura / chiusura ─────────────────────────────────────────────────
     function adminOpen() {
         document.getElementById('admin-overlay').classList.add('open');
         document.getElementById('af-data').value = new Date().toISOString().slice(0, 10);
         if (!_auth) setTimeout(() => document.getElementById('admin-pwd').focus(), 80);
+        if (_auth) loadAdminPostList();
     }
 
     function adminClose() {
         document.getElementById('admin-overlay').classList.remove('open');
-        // Rimuovi #admin dall'URL senza reload
         history.replaceState(null, '', location.pathname + location.search);
     }
 
@@ -739,18 +809,28 @@
         document.getElementById('lock-screen').style.display = 'none';
         document.getElementById('admin-form').style.display  = 'block';
         document.getElementById('lock-err').textContent      = '';
-        // Svuota i campi di accesso — il token non rimane nel DOM
         document.getElementById('admin-pwd').value   = '';
         document.getElementById('admin-token').value = '';
+        loadAdminPostList();
     }
 
-    // ─── Utility ─────────────────────────────────────────────────────────────
+    // ─── Utility: date ────────────────────────────────────────────────────────
     function isoToItalian(iso) {
         const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
         const d    = new Date(iso + 'T12:00:00');
         return `${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
     }
 
+    function italianToIso(str) {
+        const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+        const p = str.trim().split(/\s+/);
+        if (p.length < 3) return '';
+        const m = mesi.indexOf(p[1]);
+        if (m === -1) return '';
+        return `${p[2]}-${String(m+1).padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    }
+
+    // ─── Utility: costruzione HTML post ──────────────────────────────────────
     function buildPostHtml(titolo, categoria, dataStr, quote, excerpt) {
         const tagCls    = ['Musica','ROE'].includes(categoria) ? 'tag' : 'tag gray';
         const quoteHtml = quote.trim()
@@ -769,7 +849,152 @@
                 </article>`;
     }
 
-    // ─── Pubblicazione su GitHub ──────────────────────────────────────────────
+    // ─── Utility: GitHub API ──────────────────────────────────────────────────
+    async function ghFetch() {
+        const res = await fetch(GH_API_URL, {
+            headers: { 'Authorization': `token ${_token}` }
+        });
+        if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
+        const meta  = await res.json();
+        const bytes = Uint8Array.from(atob(meta.content.replace(/\n/g,'')), c => c.charCodeAt(0));
+        return { sha: meta.sha, html: new TextDecoder('utf-8').decode(bytes) };
+    }
+
+    async function ghPush(content, sha, message) {
+        const enc    = new TextEncoder().encode(content);
+        let   bin    = '';
+        enc.forEach(b => bin += String.fromCharCode(b));
+        const put = await fetch(GH_API_URL, {
+            method : 'PUT',
+            headers: { 'Authorization': `token ${_token}`, 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ message, content: btoa(bin), sha })
+        });
+        if (!put.ok) {
+            const e = await put.json().catch(()=>({}));
+            throw new Error(e.message || `PUT ${put.status}`);
+        }
+    }
+
+    // ─── Utility: manipolazione articoli nel sorgente ────────────────────────
+    // Trova l'n-esimo <article class="post-item">...</article> nel sorgente
+    function getNthArticle(html, idx) {
+        const re = /\n?[ \t]*<article class="post-item">[\s\S]*?<\/article>/g;
+        let m, count = 0;
+        while ((m = re.exec(html)) !== null) {
+            if (count === idx) return { match: m[0], start: m.index, end: m.index + m[0].length };
+            count++;
+        }
+        return null;
+    }
+
+    function removeNthArticle(html, idx) {
+        const f = getNthArticle(html, idx);
+        return f ? html.slice(0, f.start) + html.slice(f.end) : null;
+    }
+
+    function replaceNthArticle(html, idx, newHtml) {
+        const f = getNthArticle(html, idx);
+        return f ? html.slice(0, f.start) + newHtml + html.slice(f.end) : null;
+    }
+
+    // ─── Lista post nel pannello admin ───────────────────────────────────────
+    function loadAdminPostList() {
+        const articles  = [...document.querySelectorAll('.post-list .post-item')];
+        const container = document.getElementById('admin-post-list');
+        if (!container) return;
+
+        if (articles.length === 0) {
+            container.innerHTML = '<p style="font-size:.72rem;color:var(--muted);">Nessun post trovato.</p>';
+            return;
+        }
+
+        container.innerHTML = articles.map((art, idx) => {
+            const title = art.querySelector('.post-title')?.textContent?.trim() || '(senza titolo)';
+            const date  = art.querySelector('.post-date')?.textContent?.trim()  || '—';
+            const cat   = art.querySelector('.tag')?.textContent?.trim()         || '—';
+            const safe  = title.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            return `<div class="apl-row">
+                <div class="apl-info">
+                    <span class="apl-title" title="${safe}">${safe}</span>
+                    <span class="apl-meta">${date} &nbsp;·&nbsp; ${cat}</span>
+                </div>
+                <div class="apl-btns">
+                    <button class="apl-btn edit" onclick="adminEditPost(${idx})">✏️ Modifica</button>
+                    <button class="apl-btn del"  onclick="adminDeletePost(${idx})">🗑️ Elimina</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ─── Modifica post ───────────────────────────────────────────────────────
+    function adminEditPost(idx) {
+        const art = [...document.querySelectorAll('.post-list .post-item')][idx];
+        if (!art) return;
+
+        const title   = art.querySelector('.post-title')?.textContent?.trim()  || '';
+        const date    = art.querySelector('.post-date')?.textContent?.trim()    || '';
+        const catEl   = art.querySelector('.tag:not(.gray)') ?? art.querySelector('.tag');
+        const cat     = catEl?.textContent?.trim() || 'Musica';
+        const quoteEl = art.querySelector('.math-quote');
+        let   quote   = quoteEl ? quoteEl.textContent.trim()
+                            .replace(/^“|^"/,'').replace(/”$|"$/,'').trim() : '';
+        const excerpt = art.querySelector('.post-excerpt')?.textContent?.trim() || '';
+
+        document.getElementById('af-titolo').value  = title;
+        document.getElementById('af-cat').value     = cat;
+        document.getElementById('af-data').value    = italianToIso(date);
+        document.getElementById('af-quote').value   = quote;
+        document.getElementById('af-excerpt').value = excerpt;
+
+        _editingIndex = idx;
+        document.getElementById('admin-pub-btn').textContent = 'Aggiorna ✏️';
+        document.getElementById('admin-form-head').textContent = '// Modifica Post';
+        document.getElementById('admin-form-sub').textContent  = 'Le modifiche sovrascriveranno il post su GitHub';
+        document.getElementById('edit-banner').classList.add('visible');
+        document.querySelector('.admin-box').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        _editingIndex = null;
+        document.getElementById('admin-pub-btn').textContent   = 'Pubblica ↑';
+        document.getElementById('admin-form-head').textContent = '// Nuovo Post';
+        document.getElementById('admin-form-sub').textContent  = 'Il post verrà aggiunto in cima all\'archivio su GitHub';
+        document.getElementById('edit-banner').classList.remove('visible');
+        document.getElementById('af-titolo').value  = '';
+        document.getElementById('af-quote').value   = '';
+        document.getElementById('af-excerpt').value = '';
+        document.getElementById('af-data').value    = new Date().toISOString().slice(0, 10);
+        setStatus('', '');
+    }
+
+    // ─── Elimina post ────────────────────────────────────────────────────────
+    async function adminDeletePost(idx) {
+        const art   = [...document.querySelectorAll('.post-list .post-item')][idx];
+        const title = art?.querySelector('.post-title')?.textContent?.trim() || `post #${idx+1}`;
+
+        if (!confirm(`Sei sicuro di voler eliminare questo post?\n\n"${title}"`)) return;
+
+        setStatus('Eliminazione in corso...', '');
+
+        try {
+            const { sha, html } = await ghFetch();
+            const updated = removeNthArticle(html, idx);
+            if (updated === null) throw new Error('Post non trovato nel sorgente HTML.');
+
+            await ghPush(updated, sha, `[blog] Elimina: ${title}`);
+
+            // Aggiorna DOM
+            art?.remove();
+            if (_editingIndex === idx) cancelEdit();
+            loadAdminPostList();
+            setStatus('✓ Post eliminato con successo!', 'ok');
+
+        } catch(e) {
+            setStatus('✗ Errore: ' + e.message, 'err');
+        }
+    }
+
+    // ─── Pubblica / Aggiorna ─────────────────────────────────────────────────
     async function adminPubblica() {
         if (!_auth) return;
 
@@ -784,68 +1009,55 @@
             return;
         }
 
-        const btn = document.getElementById('admin-pub-btn');
+        const isEditing = _editingIndex !== null;
+        const btn       = document.getElementById('admin-pub-btn');
         btn.disabled    = true;
-        btn.textContent = 'Pubblicazione...';
+        btn.textContent = isEditing ? 'Aggiornamento...' : 'Pubblicazione...';
         setStatus('Connessione a GitHub...', '');
 
         try {
-            // 1. Fetch file corrente
-            const res = await fetch(GH_API_URL, {
-                headers: { 'Authorization': `token ${_token}` }
-            });
-            if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
-            const meta  = await res.json();
-            const sha   = meta.sha;
+            const { sha, html }  = await ghFetch();
+            const dataStr        = isoToItalian(isoData);
+            const newPost        = buildPostHtml(titolo, categoria, dataStr, quote, excerpt);
+            let   updated, commitMsg;
 
-            // Decodifica UTF-8
-            const bytes   = Uint8Array.from(atob(meta.content.replace(/\n/g, '')), c => c.charCodeAt(0));
-            const current = new TextDecoder('utf-8').decode(bytes);
-
-            // 2. Costruisci HTML del nuovo post
-            const dataStr = isoToItalian(isoData);
-            const newPost = buildPostHtml(titolo, categoria, dataStr, quote, excerpt);
-
-            // 3. Inserisci in cima alla post-list
-            const marker = '<div class="post-list">';
-            if (!current.includes(marker)) throw new Error('Marker ".post-list" non trovato nel file.');
-            const updated = current.replace(marker, marker + '\n' + newPost + '\n');
-
-            // 4. Codifica UTF-8 → base64
-            const enc     = new TextEncoder().encode(updated);
-            let   binary  = '';
-            enc.forEach(b => binary += String.fromCharCode(b));
-            const encoded = btoa(binary);
-
-            // 5. PUT su GitHub
-            const put = await fetch(GH_API_URL, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${_token}`,
-                    'Content-Type' : 'application/json'
-                },
-                body: JSON.stringify({
-                    message: `[blog] Pubblica: ${titolo}`,
-                    content: encoded,
-                    sha    : sha
-                })
-            });
-            if (!put.ok) {
-                const e = await put.json().catch(() => ({}));
-                throw new Error(e.message || `PUT ${put.status}`);
+            if (isEditing) {
+                updated   = replaceNthArticle(html, _editingIndex, newPost);
+                if (updated === null) throw new Error('Post da aggiornare non trovato nel sorgente.');
+                commitMsg = `[blog] Aggiorna: ${titolo}`;
+            } else {
+                const marker = '<div class="post-list">';
+                if (!html.includes(marker)) throw new Error('Marker ".post-list" non trovato nel file.');
+                updated   = html.replace(marker, marker + '\n' + newPost + '\n');
+                commitMsg = `[blog] Pubblica: ${titolo}`;
             }
 
-            setStatus('✓ Post pubblicato con successo!', 'ok');
-            document.getElementById('af-titolo').value  = '';
-            document.getElementById('af-quote').value   = '';
-            document.getElementById('af-excerpt').value = '';
-            document.getElementById('af-data').value    = new Date().toISOString().slice(0, 10);
+            await ghPush(updated, sha, commitMsg);
+
+            // Aggiorna DOM
+            if (isEditing) {
+                const arts = [...document.querySelectorAll('.post-list .post-item')];
+                if (arts[_editingIndex]) arts[_editingIndex].outerHTML = newPost;
+                setStatus('✓ Post aggiornato con successo!', 'ok');
+                cancelEdit();
+            } else {
+                // Inserisci in cima al DOM
+                const list = document.querySelector('.post-list');
+                if (list) list.insertAdjacentHTML('afterbegin', newPost);
+                setStatus('✓ Post pubblicato con successo!', 'ok');
+                document.getElementById('af-titolo').value  = '';
+                document.getElementById('af-quote').value   = '';
+                document.getElementById('af-excerpt').value = '';
+                document.getElementById('af-data').value    = new Date().toISOString().slice(0, 10);
+            }
+
+            loadAdminPostList();
 
         } catch (e) {
             setStatus('✗ Errore: ' + e.message, 'err');
         } finally {
             btn.disabled    = false;
-            btn.textContent = 'Pubblica ↑';
+            btn.textContent = _editingIndex !== null ? 'Aggiorna ✏️' : 'Pubblica ↑';
         }
     }
 
